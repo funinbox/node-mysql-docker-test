@@ -1,0 +1,50 @@
+version: '3.8'
+
+networks:
+  app_network:
+    driver: bridge
+
+services:
+  db:
+    image: mysql/mysql-server:latest
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_USER: 'root'
+      MYSQL_PASSWORD: 'kannak'
+      MYSQL_ROOT_PASSWORD: 'kannak'
+      MYSQL_ROOT_HOST: '%'
+    container_name: mysql_container
+    expose:
+      - "3306"
+    ports:
+      - "3306:3306"
+      - "33060:33060"
+    volumes:
+      - nm-mysqldb:/var/lib/mysql
+      - nm-mysqldb_config:/etc/mysql
+    networks:
+      - app_network
+  web:
+    depends_on:
+      - db
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: node_container
+    command: bash -c 'while !</dev/tcp/db/3306; do sleep 1; done; npm start'
+    environment:
+      SERVER_PORT: 8080
+      MYSQL_HOST: '172.17.0.1'
+      MYSQL_USER: 'root'
+      MYSQL_PASSWORD: 'kannak'
+      MYSQL_ROOT_PASSWORD: 'kannak'
+    ports:
+      - 8080:8080
+      - 9229:9229
+    networks:
+      - app_network
+volumes:
+  nm-mysqldb:
+  nm-mysqldb_config:
+
